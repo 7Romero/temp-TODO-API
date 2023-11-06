@@ -1,4 +1,4 @@
-﻿namespace ToDo.API.Domain.Entity.Interfaces;
+﻿namespace ToDo.Domain.Entity.Interfaces;
 
 public interface IBaseEntity
 {

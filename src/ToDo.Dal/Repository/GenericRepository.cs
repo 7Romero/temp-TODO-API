@@ -1,10 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
-using ToDo.API.Data.Interfaces;
-using ToDo.API.Domain.Entity.Interfaces;
+using ToDo.Dal.Interfaces;
+using ToDo.Domain.Entity.Interfaces;
 
-namespace ToDo.API.Data.Repository;
+namespace ToDo.Dal.Repository;
 
 public class GenericRepository : IGenericRepository
 {

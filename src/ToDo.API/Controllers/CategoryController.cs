@@ -1,25 +1,26 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using ToDo.API.Data.Interfaces;
-using ToDo.API.Domain.Entity;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using ToDo.API.Dto.Category;
 using ToDo.API.Dto.Pagination;
+using ToDo.Bll.Interfaces;
+using ToDo.Domain.Entity;
 
 namespace ToDo.API.Controllers;
 
 [Route("api/category")]
 public class CategoryController : AppBaseController
 {
-    private readonly IGenericRepository _genericRepository;
+    private readonly ICategoryService _categoryService;
 
-    public CategoryController(IGenericRepository genericRepository)
+    public CategoryController(ICategoryService categoryService)
     {
-        _genericRepository = genericRepository;
+        _categoryService = categoryService;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetCategory()
     {
-        var categories = await _genericRepository.GetAllWithInclude<Category>(c => c.Tasks);
+        var categories = await _categoryService.GetCategories();
 
         return Ok(categories);
     }
@@ -27,23 +28,21 @@ public class CategoryController : AppBaseController
     [HttpGet("{id}")]
     public async Task<IActionResult> GetCategoryById(Guid id)
     {
-        var category = await _genericRepository.GetByIdWithInclude<Category>(id, c => c.Tasks);
-
-        if (category == null) return NotFound();
+        var category = await _categoryService.GetCategory(id);
 
         return Ok(category);
     }
 
+    [Authorize]
     [HttpPost]
     public async Task<IActionResult> CreateCategory(CategoryDto categoryDto)
     {
-        var category = new Category 
+        var category = new Category
         {
-            Name = categoryDto.Name 
+            Name = categoryDto.Name
         };
 
-        _genericRepository.Add(category);
-        await _genericRepository.SaveChangesAsync();
+        await _categoryService.CreateCategory(category);
 
         return CreatedAtAction(nameof(GetCategory), new { id = category.Id }, category);
     }
@@ -51,13 +50,12 @@ public class CategoryController : AppBaseController
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateCategory(Guid id, CategoryDto categoryDto)
     {
-        var category = await _genericRepository.GetById<Category>(id);
+        var category = new Category
+        {
+            Name = categoryDto.Name
+        };
 
-        if (category == null) return NotFound();
-
-        category.Name = categoryDto.Name;
-
-        await _genericRepository.SaveChangesAsync();
+        await _categoryService.UpdateCategory(id, category);
 
         return NoContent();
     }
@@ -65,20 +63,15 @@ public class CategoryController : AppBaseController
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteCategory(Guid id)
     {
-        var category = await _genericRepository.GetById<Category>(id);
+        await _categoryService.DeleteCategory(id);
 
-        if (category == null) return NotFound();
-
-        await _genericRepository.Delete<Category>(id);
-
-        await _genericRepository.SaveChangesAsync();
         return NoContent();
     }
 
     [HttpGet("pagination")]
     public async Task<IActionResult> GetCategoryWithPagination([FromQuery] PaginationDto paginationDto)
     {
-        var categories = await _genericRepository.PaginateWithInclude<Category>(paginationDto.PageNumber, paginationDto.PageSize, c => c.Tasks);
+        var categories = await _categoryService.GetPaginateCategories(paginationDto.PageNumber, paginationDto.PageSize);
 
         return Ok(categories);
     }

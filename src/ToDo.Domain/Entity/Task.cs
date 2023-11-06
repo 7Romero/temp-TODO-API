@@ -1,6 +1,6 @@
-﻿using ToDo.API.Domain.Entity.Interfaces;
+﻿using ToDo.Domain.Entity.Interfaces;
 
-namespace ToDo.API.Domain.Entity;
+namespace ToDo.Domain.Entity;
 
 public class Task : IBaseEntity
 {

@@ -1,25 +1,25 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using ToDo.API.Data.Interfaces;
-using ToDo.API.Domain.Entity;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using ToDo.API.Dto.Pagination;
 using ToDo.API.Dto.Task;
+using ToDo.Bll.Interfaces;
 
 namespace ToDo.API.Controllers;
 
 [Route("api/task")]
 public class TaskController : AppBaseController
 {
-    private readonly IGenericRepository _genericRepository;
+    private readonly ITaskService _taskService;
 
-    public TaskController(IGenericRepository genericRepository)
+    public TaskController(ITaskService taskService)
     {
-        _genericRepository = genericRepository;
+        _taskService = taskService;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetTask()
     {
-        var tasks = await _genericRepository.GetAllWithInclude<Domain.Entity.Task>();
+        var tasks = await _taskService.GetTasks();
 
         return Ok(tasks);
     }
@@ -27,13 +27,14 @@ public class TaskController : AppBaseController
     [HttpGet("{id}")]
     public async Task<IActionResult> GetTaskById(Guid id)
     {
-        var task = await _genericRepository.GetById<Domain.Entity.Task>(id);
+        var task = await _taskService.GetTask(id);
 
         if (task == null) return NotFound();
 
         return Ok(task);
     }
 
+    [Authorize]
     [HttpPost]
     public async Task<IActionResult> CreateTask(TaskDto taskDto)
     {
@@ -51,13 +52,7 @@ public class TaskController : AppBaseController
             IsCompleted = taskDto.IsCompleted
         };
 
-        var category = await _genericRepository.GetById<Category>(taskDto.CategoryId);
-
-        if (category == null) return NotFound($"Not found {nameof(category)} with Id: {taskDto.CategoryId}");
-
-        _genericRepository.Add(task);
-
-        await _genericRepository.SaveChangesAsync();
+        var category = await _taskService.CreateTask(task);
 
         return CreatedAtAction(nameof(GetTask), new { id = task.Id }, TaskDto.FromTask(task));
     }
@@ -70,42 +65,42 @@ public class TaskController : AppBaseController
             return BadRequest("Title must be between 4 and 20 characters");
         }
 
-        var task = await _genericRepository.GetById<Domain.Entity.Task>(id);
+        var task = new Domain.Entity.Task
+        {
+            Title = taskDto.Title,
+            Description = taskDto.Description,
+            CategoryId = taskDto.CategoryId,
+            DueDate = taskDto.DueDate,
+            IsCompleted = taskDto.IsCompleted
+        };
 
-        if (task == null) return NotFound($"Not found {nameof(task)} with Id: {id}");
+        var result = await _taskService.UpdateTask(id, task);
 
-        var category = await _genericRepository.GetById<Category>(taskDto.CategoryId);
+        if (!result)
+        {
+            return BadRequest();
+        }
 
-        if (category == null) return NotFound($"Not found {nameof(category)} with Id: {taskDto.CategoryId}");
-
-        task.Title = taskDto.Title;
-        task.Description = taskDto.Description;
-        task.CategoryId = taskDto.CategoryId;
-        task.DueDate = taskDto.DueDate;
-        task.CreatedAt = taskDto.CreatedAt;
-        task.IsCompleted = taskDto.IsCompleted;
-
-        await _genericRepository.SaveChangesAsync();
         return NoContent();
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteTask(Guid id)
     {
-        var task = await _genericRepository.GetById<Domain.Entity.Task>(id);
+        var result = await _taskService.DeleteTask(id);
 
-        if (task == null) return NotFound($"Not found {nameof(task)} with Id: {id}");
+        if (!result)
+        {
+            return BadRequest();
+        }
 
-        await _genericRepository.Delete<Domain.Entity.Task>(id);
-
-        await _genericRepository.SaveChangesAsync();
         return NoContent();
     }
 
     [HttpGet("pagination")]
     public async Task<IActionResult> GetPaginateTask([FromQuery] PaginationDto paginationDto)
     {
-        var tasks = await _genericRepository.PaginateWithInclude<Domain.Entity.Task>(paginationDto.PageNumber, paginationDto.PageSize);
+        var tasks = await _taskService.GetPaginateTasks(paginationDto.PageNumber, paginationDto.PageSize);
 
         return Ok(tasks);
     }

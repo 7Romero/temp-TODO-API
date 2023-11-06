@@ -1,7 +1,7 @@
 ﻿using System.Linq.Expressions;
-using ToDo.API.Domain.Entity.Interfaces;
+using ToDo.Domain.Entity.Interfaces;
 
-namespace ToDo.API.Data.Interfaces;
+namespace ToDo.Dal.Interfaces;
 
 public interface IGenericRepository
 {
